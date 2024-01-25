@@ -81,7 +81,7 @@ namespace DMCompiler.DM.Expressions {
 
             var argumentInfo = _arguments.EmitArguments(dmObject, proc);
 
-            proc.PushType(typeId);
+            proc.PushType(typeId, _targetPath);
             proc.CreateObject(argumentInfo.Type, argumentInfo.StackSize);
         }
 
@@ -105,7 +105,7 @@ namespace DMCompiler.DM.Expressions {
                 return;
             }
 
-            proc.PushType(typeId);
+            proc.PushType(typeId, _path);
 
             if (_container != null) {
                 _container.EmitPushValue(dmObject, proc);
@@ -337,7 +337,7 @@ namespace DMCompiler.DM.Expressions {
             }
 
             _expr.EmitPushValue(dmObject, proc);
-            proc.PushType(typeId);
+            proc.PushType(typeId, _path);
             proc.IsType();
         }
     }
@@ -505,7 +505,7 @@ namespace DMCompiler.DM.Expressions {
                 size.EmitPushValue(dmObject, proc);
             }
 
-            proc.PushType(listTypeId);
+            proc.PushType(listTypeId, DreamPath.List);
             proc.CreateObject(DMCallArgumentsType.FromStack, _sizes.Length);
         }
     }
@@ -627,7 +627,7 @@ namespace DMCompiler.DM.Expressions {
             if (dmObject.Path == DreamPath.Root) {
                 proc.PushNull();
             } else {
-                proc.PushType(dmObject.Id);
+                proc.PushType(dmObject.Id, dmObject.Path);
             }
         }
 
@@ -648,7 +648,7 @@ namespace DMCompiler.DM.Expressions {
         {}
 
         public override void EmitPushValue(DMObject dmObject, DMProc proc) {
-            proc.PushProc(proc.Id);
+            proc.PushProc(proc.Id, proc.GetPath());
         }
 
         public override string GetNameof(DMObject dmObject, DMProc proc) => proc.Name;

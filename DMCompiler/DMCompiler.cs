@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DMCompiler.DM.Optimizer;
 using DMCompiler.Compiler;
 using DMCompiler.Json;
 
@@ -20,6 +21,8 @@ namespace DMCompiler;
 
 //TODO: Make this not a static class
 public static class DMCompiler {
+    public static string StandardLibraryDirectory = "";
+    public static string MainDirectory = "";
     public static int ErrorCount;
     public static int WarningCount;
     public static DMCompilerSettings Settings;
@@ -105,8 +108,10 @@ public static class DMCompiler {
 
                 preproc.IncludeFile(includeDir, fileName);
             }
+            MainDirectory = Path.GetDirectoryName(files[0]) ?? string.Empty;
             string compilerDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty;
             string dmStandardDirectory = Path.Join(compilerDirectory, "DMStandard");
+            StandardLibraryDirectory = dmStandardDirectory;
             // Push DMStandard to the top of the stack, prioritizing it.
             if (!Settings.NoStandard) {
                 preproc.IncludeFile(dmStandardDirectory, "_Standard.dm");
@@ -269,18 +274,25 @@ public static class DMCompiler {
     }
 
     private static string SaveJson(List<DreamMapJson> maps, string interfaceFile, string outputFile) {
+        if (Settings.DumpBytecode) {
+            var bytecodeDumpFile = Path.ChangeExtension(outputFile, "dmc");
+        }
+
         var jsonRep = DMObjectTree.CreateJsonRepresentation();
         DreamCompiledJson compiledDream = new DreamCompiledJson {
             Metadata = new DreamCompiledJsonMetadata { Version = OpcodeVerifier.GetOpcodesHash() },
             Strings = DMObjectTree.StringTable,
             Resources = DMObjectTree.Resources.ToArray(),
             Maps = maps,
-            Interface = string.IsNullOrEmpty(interfaceFile) ? "" : Path.GetRelativePath(Path.GetDirectoryName(Path.GetFullPath(outputFile)), interfaceFile),
+            Interface = string.IsNullOrEmpty(interfaceFile)
+                ? ""
+                : Path.GetRelativePath(Path.GetDirectoryName(Path.GetFullPath(outputFile)), interfaceFile),
             Types = jsonRep.Item1,
             Procs = jsonRep.Item2
         };
 
-        if (DMObjectTree.GlobalInitProc.Bytecode.Length > 0) compiledDream.GlobalInitProc = DMObjectTree.GlobalInitProc.GetJsonRepresentation();
+        if (DMObjectTree.GlobalInitProc.AnnotatedBytecode.GetLength() > 0)
+            compiledDream.GlobalInitProc = DMObjectTree.GlobalInitProc.GetJsonRepresentation();
 
         if (DMObjectTree.Globals.Count > 0) {
             GlobalListJson globalListJson = new GlobalListJson();
@@ -306,6 +318,17 @@ public static class DMCompiler {
 
         if (DMObjectTree.GlobalProcs.Count > 0) {
             compiledDream.GlobalProcs = DMObjectTree.GlobalProcs.Values.ToArray();
+        }
+
+
+        if (Settings.DumpBytecode) {
+            var bytecodeDumpFile = Path.ChangeExtension(outputFile, "dmc");
+            using var bytecodeDumpHandle = File.Create(bytecodeDumpFile);
+            using var bytecodeDumpWriter = new StreamWriter(bytecodeDumpHandle);
+            DMObjectTree.GlobalInitProc.Dump(bytecodeDumpWriter);
+            foreach (var proc in DMObjectTree.AllProcs) {
+                proc.Dump(bytecodeDumpWriter);
+            }
         }
 
         // Successful serialization
@@ -364,6 +387,7 @@ public struct DMCompilerSettings {
     public bool DumpPreprocessor = false;
     public bool NoStandard = false;
     public bool Verbose = false;
+    public bool DumpBytecode = false;
     public Dictionary<string, string>? MacroDefines = null;
     /// <summary> A user-provided pragma config file, if one was provided. </summary>
     public string? PragmaFileOverride = null;

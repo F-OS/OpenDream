@@ -298,7 +298,27 @@ namespace OpenDreamRuntime.Procs {
             {DreamProcOpcode.GetStep, DMOpcodeHandlers.GetStep},
             {DreamProcOpcode.Length, DMOpcodeHandlers.Length},
             {DreamProcOpcode.GetDir, DMOpcodeHandlers.GetDir},
-            {DreamProcOpcode.DebuggerBreakpoint, DMOpcodeHandlers.DebuggerBreakpoint}
+            {DreamProcOpcode.DebuggerBreakpoint, DMOpcodeHandlers.DebuggerBreakpoint},
+            // Peephole optimizer opcode handlers
+            {DreamProcOpcode.PushRefandJumpIfNotNull, DMOpcodeHandlers.PushReferenceAndJumpIfNotNull},
+            {DreamProcOpcode.NullRef, DMOpcodeHandlers.NullRef},
+            {DreamProcOpcode.AssignPop, DMOpcodeHandlers.AssignPop},
+            {DreamProcOpcode.PushRefAndDereferenceField, DMOpcodeHandlers.PushReferenceAndDereferenceField},
+            {DreamProcOpcode.PushNRefs, DMOpcodeHandlers.PushNRefs},
+            {DreamProcOpcode.PushNFloats, DMOpcodeHandlers.PushNFloats},
+            {DreamProcOpcode.PushNStrings, DMOpcodeHandlers.PushNStrings},
+            {DreamProcOpcode.PushNResources, DMOpcodeHandlers.PushNResources},
+            {DreamProcOpcode.PushStringFloat, DMOpcodeHandlers.PushStringFloat},
+            {DreamProcOpcode.SwitchOnFloat, DMOpcodeHandlers.SwitchOnFloat},
+            {DreamProcOpcode.SwitchOnString, DMOpcodeHandlers.SwitchOnString},
+            {DreamProcOpcode.JumpIfReferenceFalse, DMOpcodeHandlers.JumpIfReferenceFalse},
+            {DreamProcOpcode.PushNOfStringFloats, DMOpcodeHandlers.PushNOfStringFloat},
+            {DreamProcOpcode.CreateListNFloats, DMOpcodeHandlers.CreateListNFloats},
+            {DreamProcOpcode.CreateListNStrings, DMOpcodeHandlers.CreateListNStrings},
+            {DreamProcOpcode.CreateListNRefs, DMOpcodeHandlers.CreateListNRefs},
+            {DreamProcOpcode.CreateListNResources, DMOpcodeHandlers.CreateListNResources},
+            {DreamProcOpcode.JumpIfNotNull, DMOpcodeHandlers.JumpIfNotNull},
+            {DreamProcOpcode.IsTypeDirect, DMOpcodeHandlers.IsTypeDirect},
         };
 
         public static readonly unsafe delegate*<DMProcState, ProcStatus>[] OpcodeHandlers;
@@ -987,8 +1007,8 @@ namespace OpenDreamRuntime.Procs {
 
                     Array.Fill(arguments, DreamValue.Null);
                     for (int i = 0; i < argumentCount; i++) {
-                        var key = values[i*2];
-                        var value = values[i*2+1];
+                        var key = values[i * 2];
+                        var value = values[i * 2 + 1];
 
                         if (key.IsNull) {
                             // image() or new /image() will skip the loc arg if the second arg is a string
